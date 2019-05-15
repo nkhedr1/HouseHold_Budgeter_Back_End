@@ -14,5 +14,6 @@ namespace HouseHoldBudgeter.Controllers
 
             return View();
         }
+
     }
 }

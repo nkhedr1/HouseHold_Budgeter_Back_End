@@ -16,6 +16,9 @@ using Microsoft.Owin.Security.OAuth;
 using HouseHoldBudgeter.Models;
 using HouseHoldBudgeter.Providers;
 using HouseHoldBudgeter.Results;
+using System.Linq;
+using System.Net.Mail;
+using System.Net;
 
 namespace HouseHoldBudgeter.Controllers
 {
@@ -25,9 +28,11 @@ namespace HouseHoldBudgeter.Controllers
     {
         private const string LocalLoginProvider = "Local";
         private ApplicationUserManager _userManager;
+        private ApplicationDbContext DbContext;
 
         public AccountController()
         {
+            DbContext = new ApplicationDbContext();
         }
 
         public AccountController(ApplicationUserManager userManager,
@@ -488,6 +493,87 @@ namespace HouseHoldBudgeter.Controllers
                 return HttpServerUtility.UrlTokenEncode(data);
             }
         }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [Route("ForgotPassword")]
+        public async Task<IHttpActionResult> ForgotPassword(ForgotPasswordViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var user = await UserManager.FindByEmailAsync(model.Email);
+     
+                if (user == null)
+                {
+                    return NotFound();
+                }
+
+                // For more information on how to enable account confirmation and password reset please visit https://go.microsoft.com/fwlink/?LinkID=320771
+                // Send an email with this link
+                string code = await UserManager.GeneratePasswordResetTokenAsync(user.Id);
+
+                SendEmailNotification(model.Email, "Reset Password", "Please use this code to reset your password " + code);
+
+            }
+            
+            return Ok();
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [Route("ResetPassword")]
+        public async Task<IHttpActionResult> ResetPassword(ResetPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var user = await UserManager.FindByNameAsync(model.Email);
+            if (user == null)
+            {
+                // Don't reveal that the user does not exist
+                return NotFound();
+            }
+            var result = await UserManager.ResetPasswordAsync(user.Id, model.Code, model.Password);
+            if (result.Succeeded)
+            {
+                return Ok("Password Reset");
+            }
+
+            return Ok();
+        }
+
+        protected void SendEmailNotification(string email, string subject, string body)
+        {
+
+            MailAddress from = new MailAddress("nour@gmail.com");
+            MailAddress to = new MailAddress(email);
+            MailMessage message = new MailMessage(from, to);
+
+            message.Subject = subject;
+            message.Body = body;
+            message.BodyEncoding = System.Text.Encoding.UTF8;
+            message.IsBodyHtml = true;
+
+            SmtpClient client = new SmtpClient("smtp.mailtrap.io", 2525);
+            client.UseDefaultCredentials = false;
+            client.EnableSsl = true;
+            client.Credentials = new NetworkCredential("e4ffc6c1f9b78a", "0e3ad862fa6817");
+
+            try
+            {
+                client.Send(message);
+            }
+            catch
+            {
+                //error message?
+            }
+            finally
+            {
+
+            }
+        }
+
 
         #endregion
     }
