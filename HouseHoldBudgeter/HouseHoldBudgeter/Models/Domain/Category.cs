@@ -14,7 +14,7 @@ namespace HouseHoldBudgeter.Models.Domain
         public DateTime? DateUpdated { get; set; }
 
         public virtual Household Household { get; set; }
-        public string HouseholdId { get; set; }
+        public int HouseholdId { get; set; }
 
     }
 }

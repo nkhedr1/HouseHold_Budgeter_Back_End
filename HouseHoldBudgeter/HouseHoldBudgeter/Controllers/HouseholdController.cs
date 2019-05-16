@@ -28,6 +28,9 @@ namespace HouseHoldBudgeter.Controllers
         {
             var userId = User.Identity.GetUserId();
 
+            var currentLoggedUser = DbContext.Users.FirstOrDefault(
+            usr => usr.Id == userId);
+
             Household newHouseholde;
 
             newHouseholde = new Household();
@@ -35,22 +38,12 @@ namespace HouseHoldBudgeter.Controllers
             newHouseholde.Description = model.Description;
             newHouseholde.CreatedById = userId;
             newHouseholde.DateCreated = DateTime.Today;
+            newHouseholde.HouseholdJoinedMembers.Add(currentLoggedUser);
 
             DbContext.Households.Add(newHouseholde);
+            newHouseholde.HouseholdJoinedMembers.Add(currentLoggedUser);
             DbContext.SaveChanges();
-
-
-
-            var householdModel = new HouseholdViewModel();
-            householdModel.Name = newHouseholde.Name;
-            householdModel.Description = newHouseholde.Description;
-            householdModel.DateCreated = newHouseholde.DateCreated;
-
-            //var url = Url.Link("RetrieveCust",
-            //   new { id = newCustomer.Id });
-
-            //return Created(url, customerModel);
-
+         
             return Ok();
         }
 
@@ -210,6 +203,43 @@ namespace HouseHoldBudgeter.Controllers
                 return BadRequest("You are not a member of this household");
             }
 
+        }
+
+        [HttpGet]
+        [Authorize]
+        [Route("ViewHouseholdMembers/{id}")]
+        public IHttpActionResult ViewHouseholdMembers(int id)
+        {
+            var currentHousehold = DbContext.Households.FirstOrDefault(
+                house => house.Id == id);
+
+            var userId = User.Identity.GetUserId();
+
+            var currentLoggedUser = DbContext.Users.FirstOrDefault(
+            usr => usr.Id == userId);
+
+            if (currentHousehold == null)
+            {
+                return NotFound();
+            }
+
+            if (currentHousehold.HouseholdJoinedMembers.Contains(currentLoggedUser))
+            {
+                var currentHouseholdMembers = (from member in currentHousehold.HouseholdJoinedMembers
+                                               select new MemberViewModel
+                                               {
+                                                   Email = member.Email,
+                                                   UserName = member.UserName
+                                               }).ToList();
+
+
+
+                return Ok(currentHouseholdMembers);
+            }
+            else
+            {
+                return BadRequest("You are not a member of this household");
+            }
         }
     }
 }

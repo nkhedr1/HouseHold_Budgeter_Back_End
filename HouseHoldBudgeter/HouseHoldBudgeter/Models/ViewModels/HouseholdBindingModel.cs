@@ -14,6 +14,5 @@ namespace HouseHoldBudgeter.Models.ViewModels
         [Required]
         public string Description { get; set; }
 
-
     }
 }
