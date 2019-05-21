@@ -21,11 +21,14 @@ namespace HouseHoldBudgeter.Models.Domain
 
         public virtual List<Category> HouseholdCategories { get; set; }
 
+        public virtual List<BankAccount> BankAccounts { get; set; }
+
         public Household()
         {
             HouseholdJoinedMembers = new List<ApplicationUser>();
             HouseholdInvitedMembers = new List<ApplicationUser>();
             HouseholdCategories = new List<Category>();
+            BankAccounts = new List<BankAccount>();
         }
     }
 }

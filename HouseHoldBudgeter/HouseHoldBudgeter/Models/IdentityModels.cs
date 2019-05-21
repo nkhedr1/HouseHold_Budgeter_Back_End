@@ -48,6 +48,19 @@ namespace HouseHoldBudgeter.Models
 
         public DbSet<Household> Households { get; set; }
         public DbSet<Category> Categories { get; set; }
+        public DbSet<BankAccount> BankAccounts { get; set; }
+        public DbSet<Transaction> Transactions { get; set; }
+
+        protected override void OnModelCreating(DbModelBuilder modelBuilder)
+        {
+
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Household>()
+                .HasMany<Category>(g => g.HouseholdCategories)
+                .WithRequired(s => s.Household)
+                .WillCascadeOnDelete(false);
+        }
 
         public static ApplicationDbContext Create()
         {
