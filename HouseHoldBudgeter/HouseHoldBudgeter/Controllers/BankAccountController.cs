@@ -26,6 +26,11 @@ namespace HouseHoldBudgeter.Controllers
         [Route("CreateBankAccount/{id:int}")]
         public IHttpActionResult CreateBankAccount(int id, BankAccountBindingModel model)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             var currentHousehold = DbContext.Households.FirstOrDefault(
                house => house.Id == id);
 
@@ -61,6 +66,11 @@ namespace HouseHoldBudgeter.Controllers
         [Route("EditBankAccount/{id:int}/{bankAccountId:int}")]
         public IHttpActionResult EditBankAccount(int id, int bankAccountId, BankAccountViewModel model)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             var currentHousehold = DbContext.Households.FirstOrDefault(
                 house => house.Id == id);
 
@@ -161,6 +171,50 @@ namespace HouseHoldBudgeter.Controllers
             {
                 return BadRequest("You are not a member of this household");
             }
+        }
+
+        [HttpPost]
+        [Authorize]
+        [Route("ManuallyUpdateBankAccountBalance/{id:int}/{bankAccountId:int}")]
+        public IHttpActionResult ManuallyUpdateBankAccountBalance(int id, int bankAccountId)
+        {
+            var currentHousehold = DbContext.Households.FirstOrDefault(
+                house => house.Id == id);
+
+            var currentBankAccount = currentHousehold.BankAccounts.FirstOrDefault(
+               cat => cat.Id == bankAccountId);
+
+            var userId = User.Identity.GetUserId();
+
+            if (currentHousehold == null || currentBankAccount == null)
+            {
+                return NotFound();
+            }
+
+            if (currentHousehold.CreatedById == userId)
+            {
+
+                UpdateBankAccountBalance(currentBankAccount.Id);
+                DbContext.SaveChanges();
+                return Ok("Bank Account Balance: " + currentBankAccount.Balance);
+            }
+            else
+            {
+                return BadRequest("User not owner of household");
+            }
+
+        }
+
+        public void UpdateBankAccountBalance(int bankAccountId)
+        {
+            var currentBankAccount = DbContext.BankAccounts.FirstOrDefault(
+               account => account.Id == bankAccountId);
+
+            var activeTransactions = (from transaction in currentBankAccount.Transactions
+                                      where transaction.VoidTransaction == false
+                                      select transaction.Amount).ToList();
+
+            currentBankAccount.Balance = activeTransactions.AsQueryable().Sum();
         }
     }
 }

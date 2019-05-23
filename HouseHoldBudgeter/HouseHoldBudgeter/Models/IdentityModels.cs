@@ -23,11 +23,14 @@ namespace HouseHoldBudgeter.Models
         [InverseProperty(nameof(Household.HouseholdInvitedMembers))]
         public virtual List<Household> InvitedToHouseholds { get; set; }
 
+        public virtual List<Transaction> Transactions { get; set; }
+
         public ApplicationUser()
         {
             CreatedHouseholds = new List<Household>();
             JoinedHouseholds = new List<Household>();
             InvitedToHouseholds = new List<Household>();
+            Transactions = new List<Transaction>();
         }
 
         public async Task<ClaimsIdentity> GenerateUserIdentityAsync(UserManager<ApplicationUser> manager, string authenticationType)
@@ -60,6 +63,17 @@ namespace HouseHoldBudgeter.Models
                 .HasMany<Category>(g => g.HouseholdCategories)
                 .WithRequired(s => s.Household)
                 .WillCascadeOnDelete(false);
+
+            modelBuilder
+               .Entity<ApplicationUser>()
+               .HasMany(p => p.JoinedHouseholds)
+               .WithMany(p => p.HouseholdJoinedMembers)
+               .Map(p => p.ToTable("HouseholdJoinedMembers"));
+
+            modelBuilder.Entity<ApplicationUser>()
+                .HasMany(p => p.InvitedToHouseholds)
+                .WithMany(p => p.HouseholdInvitedMembers)
+                .Map(p => p.ToTable("HouseholdInvitedMembers"));
         }
 
         public static ApplicationDbContext Create()

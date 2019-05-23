@@ -26,6 +26,11 @@ namespace HouseHoldBudgeter.Controllers
         [Route("CreateCategory/{id:int}")]
         public IHttpActionResult CreateCategory(int id, CategoryBindingModel model)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             var currentHousehold = DbContext.Households.FirstOrDefault(
                house => house.Id == id);
 
@@ -62,6 +67,12 @@ namespace HouseHoldBudgeter.Controllers
         [Route("EditCategory/{id:int}/{categoryId:int}")]
         public IHttpActionResult EditCategory(int id, int categoryId, CategoryViewModel categoryData)
         {
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             var currentHousehold = DbContext.Households.FirstOrDefault(
                 house => house.Id == id);
 

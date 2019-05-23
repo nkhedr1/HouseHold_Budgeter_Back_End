@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 
-namespace HouseHoldBudgeter.Models.Domain
+namespace HouseHoldBudgeter.Models.ViewModels
 {
-    public class Transaction
+    public class TransactionViewModel
     {
         public int Id { get; set; }
         public string Title { get; set; }
@@ -15,15 +15,5 @@ namespace HouseHoldBudgeter.Models.Domain
         public DateTime? DateUpdated { get; set; }
         public decimal Amount { get; set; }
         public bool VoidTransaction { get; set; }
-
-        public virtual Category Category { get; set; }
-        public int CategoryId { get; set; }
-
-        public virtual BankAccount BankAccount { get; set; }
-        public int BankAccountId { get; set; }
-
-        public virtual ApplicationUser CreatedBy { get; set; }
-        public string CreatedById { get; set; }
-
     }
 }
