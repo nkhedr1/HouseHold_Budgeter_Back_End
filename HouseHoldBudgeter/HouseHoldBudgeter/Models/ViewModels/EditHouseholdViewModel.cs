@@ -5,13 +5,9 @@ using System.Web;
 
 namespace HouseHoldBudgeter.Models.ViewModels
 {
-    public class HouseholdViewModel
+    public class EditHouseholdViewModel
     {
-        public int Id { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
-        public DateTime DateCreated { get; set; }
-        public DateTime? DateUpdated { get; set; }
-       
     }
 }

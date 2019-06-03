@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Mail;
 using System.Web.Http;
 
 namespace HouseHoldBudgeter.Controllers
@@ -43,8 +44,37 @@ namespace HouseHoldBudgeter.Controllers
             DbContext.Households.Add(newHouseholde);
             newHouseholde.HouseholdJoinedMembers.Add(currentLoggedUser);
             DbContext.SaveChanges();
-         
+
             return Ok();
+        }
+
+        [HttpGet]
+        [Authorize]
+        [Route("EditHousehold/{id:int}")]
+        public IHttpActionResult EditHousehold(int id)
+        {
+            var currentHousehold = DbContext.Households.FirstOrDefault(
+                house => house.Id == id);
+
+            var userId = User.Identity.GetUserId();
+
+            if (currentHousehold == null)
+            {
+                return NotFound();
+            }
+
+            if (currentHousehold.CreatedById == userId)
+            {
+                var householdModel = new EditHouseholdViewModel();
+                householdModel.Name = currentHousehold.Name;
+                householdModel.Description = currentHousehold.Description;
+                return Ok(householdModel);
+            }
+            else
+            {
+                return NotFound();
+            }
+
         }
 
         [HttpPost]
@@ -69,13 +99,13 @@ namespace HouseHoldBudgeter.Controllers
                 currentHousehold.DateUpdated = DateTime.Today;
 
                 DbContext.SaveChanges();
-                return Ok("Household Edited");
+                return Ok(currentHousehold);
             }
             else
             {
                 return NotFound();
             }
-            
+
         }
 
         [HttpPost]
@@ -97,20 +127,61 @@ namespace HouseHoldBudgeter.Controllers
             {
                 DbContext.Households.Remove(currentHousehold);
                 DbContext.SaveChanges();
-                return Ok("Household Deleted");
+                return Ok();
             }
             else
             {
-                return BadRequest("User not owner of household");
+                return BadRequest();
             }
 
         }
+
+        [HttpGet]
+        [Authorize]
+        [Route("InviteToHousehold/{id:int}")]
+        public IHttpActionResult InviteToHousehold(int id)
+        {
+            var currentHousehold = DbContext.Households.FirstOrDefault(
+                house => house.Id == id);
+
+            var userId = User.Identity.GetUserId();
+
+            var currentUsers = (from user in DbContext.Users
+                                select new MemberViewModel
+                                {
+                                    Email = user.Email,
+                                    UserName = user.UserName
+                                }).ToList();
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            if (currentHousehold == null)
+            {
+                return NotFound();
+            }
+
+            if (currentHousehold.CreatedById == userId)
+            {
+
+                return Ok(currentUsers);
+            }
+            else
+            {
+                return BadRequest();
+            }
+
+        }
+
 
         [HttpPost]
         [Authorize]
         [Route("InviteToHousehold")]
         public IHttpActionResult InviteToHousehold(InviteUser inviteData)
         {
+
             var currentHousehold = DbContext.Households.FirstOrDefault(
                 house => house.Id == inviteData.HouseholdId);
 
@@ -118,6 +189,8 @@ namespace HouseHoldBudgeter.Controllers
               usr => usr.Email == inviteData.Email);
 
             var userId = User.Identity.GetUserId();
+
+            var url = $"http://localhost:50602/Household/JoinHousehold/{inviteData.HouseholdId}";
 
             if (!ModelState.IsValid)
             {
@@ -133,23 +206,24 @@ namespace HouseHoldBudgeter.Controllers
             {
                 currentHousehold.HouseholdInvitedMembers.Add(currentInvitedUser);
                 DbContext.SaveChanges();
-                return Ok("Member invited to Household");
+                SendEmailNotification(inviteData.Email, "Join Household", "Please visit this link to accept joining the household " + url);
+                return Ok();
             }
             else
             {
-                return BadRequest("User not owner of household");
+                return BadRequest();
             }
 
         }
 
-        [HttpPost]
+        [HttpGet]
         [Authorize]
         [Route("JoinHousehold/{id:int}")]
         public IHttpActionResult JoinHousehold(int id)
         {
             var currentHousehold = DbContext.Households.FirstOrDefault(
                 house => house.Id == id);
-    
+
             var userId = User.Identity.GetUserId();
 
             var currentInvitedUser = DbContext.Users.FirstOrDefault(
@@ -165,16 +239,16 @@ namespace HouseHoldBudgeter.Controllers
                 currentHousehold.HouseholdJoinedMembers.Add(currentInvitedUser);
                 currentHousehold.HouseholdInvitedMembers.Remove(currentInvitedUser);
                 DbContext.SaveChanges();
-                return Ok("You are now a member of the household");
+                return Ok();
             }
             else
             {
-                return BadRequest("You were not invited for this household");
+                return BadRequest();
             }
 
         }
 
-        [HttpPost]
+        [HttpGet]
         [Authorize]
         [Route("LeaveHousehold/{id:int}")]
         public IHttpActionResult LeaveHousehold(int id)
@@ -196,11 +270,11 @@ namespace HouseHoldBudgeter.Controllers
             {
                 currentHousehold.HouseholdJoinedMembers.Remove(currentJoinedUser);
                 DbContext.SaveChanges();
-                return Ok("You are no longer a member of this household");
+                return Ok();
             }
             else
             {
-                return BadRequest("You are not a member of this household");
+                return BadRequest();
             }
 
         }
@@ -238,8 +312,89 @@ namespace HouseHoldBudgeter.Controllers
             }
             else
             {
-                return BadRequest("You are not a member of this household");
+                return BadRequest();
             }
         }
+
+        [HttpGet]
+        [Authorize]
+        [Route("ViewMyCreatedHouseholds")]
+        public IHttpActionResult ViewMyCreatedHouseholds()
+        {
+
+            var userId = User.Identity.GetUserId();
+
+            var myCreatedHouseholds = (from house in DbContext.Households
+                                       where house.CreatedById == userId
+                                       select new HouseholdViewModel
+                                       {
+                                           Id = house.Id,
+                                           Name = house.Name,
+                                           DateCreated = house.DateCreated,
+                                           DateUpdated = house.DateUpdated
+                                       }).ToList();
+
+
+            return Ok(myCreatedHouseholds);
+
+        }
+
+        [HttpGet]
+        [Authorize]
+        [Route("ViewHouseholdsJoined")]
+        public IHttpActionResult ViewHouseholdsJoined()
+        {
+
+            var userId = User.Identity.GetUserId();
+
+            var currentLoggedUser = DbContext.Users.FirstOrDefault(
+            usr => usr.Id == userId);
+
+            var myJoinedHouseholds = (from usr in currentLoggedUser.JoinedHouseholds
+                                
+                                       select new HouseholdViewModel
+                                       {
+                                           Id = usr.Id,
+                                           Name = usr.Name,
+                                           DateCreated = usr.DateCreated,
+                                           DateUpdated = usr.DateUpdated
+                                       }).ToList();
+
+
+            return Ok(myJoinedHouseholds);
+
+        }
+
+        protected void SendEmailNotification(string email, string subject, string body)
+        {
+
+            MailAddress from = new MailAddress("nour@gmail.com");
+            MailAddress to = new MailAddress(email);
+            MailMessage message = new MailMessage(from, to);
+
+            message.Subject = subject;
+            message.Body = body;
+            message.BodyEncoding = System.Text.Encoding.UTF8;
+            message.IsBodyHtml = true;
+
+            SmtpClient client = new SmtpClient("smtp.mailtrap.io", 2525);
+            client.UseDefaultCredentials = false;
+            client.EnableSsl = true;
+            client.Credentials = new NetworkCredential("e4ffc6c1f9b78a", "0e3ad862fa6817");
+
+            try
+            {
+                client.Send(message);
+            }
+            catch
+            {
+                //error message?
+            }
+            finally
+            {
+
+            }
+        }
+
     }
 }
