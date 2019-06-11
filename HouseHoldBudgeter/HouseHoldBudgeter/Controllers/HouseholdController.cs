@@ -108,7 +108,7 @@ namespace HouseHoldBudgeter.Controllers
 
         }
 
-        [HttpPost]
+        [HttpGet]
         [Authorize]
         [Route("DeleteHousehold/{id:int}")]
         public IHttpActionResult DeleteHousehold(int id)
