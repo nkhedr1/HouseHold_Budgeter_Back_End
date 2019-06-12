@@ -134,7 +134,7 @@ namespace HouseHoldBudgeter.Controllers
 
         }
 
-        [HttpPost]
+        [HttpGet]
         [Authorize]
         [Route("DeleteCategory/{id:int}/{categoryId:int}")]
         public IHttpActionResult DeleteCategory(int id, int categoryId)
@@ -157,11 +157,11 @@ namespace HouseHoldBudgeter.Controllers
 
                 DbContext.Categories.Remove(currentCategory);
                 DbContext.SaveChanges();
-                return Ok("Category Deleted");
+                return Ok();
             }
             else
             {
-                return BadRequest("User not owner of household");
+                return BadRequest();
             }
 
         }

@@ -13,5 +13,6 @@ namespace HouseHoldBudgeter.Models.ViewModels
         public DateTime DateCreated { get; set; }
         public DateTime? DateUpdated { get; set; }
         public decimal Balance { get; set; }
+        public int HouseholdId { get; set; }
     }
 }

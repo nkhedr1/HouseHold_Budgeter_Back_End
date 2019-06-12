@@ -53,12 +53,46 @@ namespace HouseHoldBudgeter.Controllers
                 currentHousehold.BankAccounts.Add(newBankAccount);
                 DbContext.SaveChanges();
 
-                return Ok("Bank Account created");
+                return Ok();
             }
             else
             {
-                return BadRequest("User not owner of household");
+                return NotFound();
             }
+        }
+
+        [HttpGet]
+        [Authorize]
+        [Route("EditBankAccount/{id:int}/{bankAccountId:int}")]
+        public IHttpActionResult EditBankAccount(int id, int bankAccountId)
+        {
+            var currentHousehold = DbContext.Households.FirstOrDefault(
+                house => house.Id == id);
+
+            var currentBankAccount = currentHousehold.BankAccounts.FirstOrDefault(
+               cat => cat.Id == bankAccountId);
+
+            var userId = User.Identity.GetUserId();
+
+            if (currentHousehold == null || currentBankAccount == null)
+            {
+                return NotFound();
+            }
+
+            if (currentHousehold.CreatedById == userId)
+            {
+                var accountModel = new BankAccountViewModel();
+                accountModel.Name = currentBankAccount.Name;
+                accountModel.Description = currentBankAccount.Description;
+                accountModel.Id = currentBankAccount.Id;
+                accountModel.HouseholdId = currentBankAccount.HouseHoldId;
+                return Ok(accountModel);
+            }
+            else
+            {
+                return NotFound();
+            }
+
         }
 
         [HttpPost]
@@ -91,16 +125,16 @@ namespace HouseHoldBudgeter.Controllers
                 currentBankAccount.DateUpdated = DateTime.Today;
 
                 DbContext.SaveChanges();
-                return Ok("Bank Account Edited");
+                return Ok();
             }
             else
             {
-                return BadRequest("User not owner of household");
+                return NotFound();
             }
 
         }
 
-        [HttpPost]
+        [HttpGet]
         [Authorize]
         [Route("DeleteBankAccount/{id:int}/{bankAccountId:int}")]
         public IHttpActionResult DeleteBankAccount(int id, int bankAccountId)
@@ -153,14 +187,15 @@ namespace HouseHoldBudgeter.Controllers
             if (currentHousehold.HouseholdJoinedMembers.Contains(currentLoggedUser))
             {
                 var currentHouseholdBankAccounts = (from account in currentHousehold.BankAccounts
-                                                  select new BankAccountViewModel
-                                                  {
-                                                      Id = account.Id,
-                                                      Name = account.Name,
-                                                      Description = account.Description,
-                                                      DateCreated = account.DateCreated,
-                                                      DateUpdated = account.DateUpdated,
-                                                      Balance = account.Balance
+                                                    select new BankAccountViewModel
+                                                    {
+                                                        Id = account.Id,
+                                                        Name = account.Name,
+                                                        Description = account.Description,
+                                                        DateCreated = account.DateCreated,
+                                                        DateUpdated = account.DateUpdated,
+                                                        Balance = account.Balance,
+                                                        HouseholdId = id
                                                   }).ToList();
 
 
@@ -169,7 +204,7 @@ namespace HouseHoldBudgeter.Controllers
             }
             else
             {
-                return BadRequest("You are not a member of this household");
+                return BadRequest();
             }
         }
 
