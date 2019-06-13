@@ -208,7 +208,8 @@ namespace HouseHoldBudgeter.Controllers
             }
         }
 
-        [HttpPost]
+
+        [HttpGet]
         [Authorize]
         [Route("ManuallyUpdateBankAccountBalance/{id:int}/{bankAccountId:int}")]
         public IHttpActionResult ManuallyUpdateBankAccountBalance(int id, int bankAccountId)
@@ -228,14 +229,13 @@ namespace HouseHoldBudgeter.Controllers
 
             if (currentHousehold.CreatedById == userId)
             {
-
                 UpdateBankAccountBalance(currentBankAccount.Id);
                 DbContext.SaveChanges();
-                return Ok("Bank Account Balance: " + currentBankAccount.Balance);
+                return Ok();
             }
             else
             {
-                return BadRequest("User not owner of household");
+                return BadRequest();
             }
 
         }

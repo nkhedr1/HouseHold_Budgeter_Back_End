@@ -235,6 +235,7 @@
     <Compile Include="Models\ViewModels\BankAccountViewModel.cs" />
     <Compile Include="Models\ViewModels\CategoryBindingModel.cs" />
     <Compile Include="Models\ViewModels\CategoryViewModel.cs" />
+    <Compile Include="Models\ViewModels\CreateTransactionViewModel.cs" />
     <Compile Include="Models\ViewModels\EditCategoryViewModel.cs" />
     <Compile Include="Models\ViewModels\EditHouseholdViewModel.cs" />
     <Compile Include="Models\ViewModels\EditTransactionBindingModel.cs" />

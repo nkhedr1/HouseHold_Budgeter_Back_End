@@ -25,5 +25,6 @@ namespace HouseHoldBudgeter.Models.ViewModels
         [Required]
         public DateTime Date { get; set; }
 
+
     }
 }

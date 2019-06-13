@@ -21,10 +21,57 @@ namespace HouseHoldBudgeter.Controllers
             DbContext = new ApplicationDbContext();
         }
 
+        [HttpGet]
+        [Authorize]
+        [Route("CreateTransaction/{id:int}/{bankAccountId:int}")]
+        public IHttpActionResult CreateTransaction(int id, int bankAccountId)
+        {
+            var currentHousehold = DbContext.Households.FirstOrDefault(
+                house => house.Id == id);
+
+            var currentBankAccount = currentHousehold.BankAccounts.FirstOrDefault(
+               cat => cat.Id == bankAccountId);
+
+            var currentHouseholdCategories = (from cat in currentHousehold.HouseholdCategories
+                                              select new CategoryViewModel
+                                                {
+                                                    Id = cat.Id,
+                                                    Name = cat.Name,
+                                                    Description = cat.Description,
+                                                    HouseholdId = cat.HouseholdId,
+                                                    DateCreated = cat.DateCreated,
+                                                    DateUpdated = cat.DateUpdated
+                                                }).ToList();
+
+            
+
+            var userId = User.Identity.GetUserId();
+
+            if (currentBankAccount == null)
+            {
+                return NotFound();
+            }
+
+            if (currentHousehold.CreatedById == userId)
+            {
+                CreateTransactionViewModel newTransactionModel;
+
+                newTransactionModel = new CreateTransactionViewModel();
+                newTransactionModel.Categories = currentHouseholdCategories;
+                newTransactionModel.HouseholdId = id;
+                return Ok(newTransactionModel);
+            }
+            else
+            {
+                return NotFound();
+            }
+
+        }
+
         [HttpPost]
         [Authorize]
-        [Route("CreateTransaction/{id:int}")]
-        public IHttpActionResult CreateTransaction(int id, TransactionBindingModel model)
+        [Route("CreateTransaction/{id:int}/{bankAccountId:int}")]
+        public IHttpActionResult CreateTransaction(int id, int bankAccountId, CreateTransactionViewModel model)
         {
 
             if (!ModelState.IsValid)
@@ -36,7 +83,7 @@ namespace HouseHoldBudgeter.Controllers
             house => house.Id == id);
 
             var currentBankAccount = currentHousehold.BankAccounts.FirstOrDefault(
-               account => account.Id == model.BankAccountId);
+               account => account.Id == bankAccountId);
 
             var currentCategory = currentHousehold.HouseholdCategories.FirstOrDefault(
               cat => cat.Id == model.CategoryId);
@@ -60,7 +107,7 @@ namespace HouseHoldBudgeter.Controllers
                 newTransaction.Description = model.Description;
                 newTransaction.DateCreated = DateTime.Today;
                 newTransaction.Date = model.Date;
-                newTransaction.BankAccountId = model.BankAccountId;
+                newTransaction.BankAccountId = bankAccountId;
                 newTransaction.CategoryId = model.CategoryId;
                 newTransaction.Amount = model.Amount;
                 newTransaction.CreatedById = userId;
@@ -69,19 +116,67 @@ namespace HouseHoldBudgeter.Controllers
                 UpdateBankAccountBalance(currentBankAccount.Id);
                 DbContext.SaveChanges();
 
-                return Ok("Transaction added");
+                return Ok();
             }
             else
             {
-                return BadRequest("User not owner of household");
+                return BadRequest();
+            }
+
+        }
+
+        [HttpGet]
+        [Authorize]
+        [Route("EditTransaction/{householdId:int}/{id:int}")]
+        public IHttpActionResult EditTransaction(int id, int householdId)
+        {
+            var currentHousehold = DbContext.Households.FirstOrDefault(
+                house => house.Id == householdId);
+
+            var currentTransaction = DbContext.Transactions.FirstOrDefault(
+               trans => trans.Id == id);
+
+            var currentHouseholdCategories = (from cat in currentHousehold.HouseholdCategories
+                                              select new CategoryViewModel
+                                              {
+                                                  Id = cat.Id,
+                                                  Name = cat.Name,
+                                                  Description = cat.Description,
+                                                  HouseholdId = cat.HouseholdId,
+                                                  DateCreated = cat.DateCreated,
+                                                  DateUpdated = cat.DateUpdated
+                                              }).ToList();
+
+            var userId = User.Identity.GetUserId();
+
+            if (currentTransaction == null)
+            {
+                return NotFound();
+            }
+
+            if (currentHousehold.CreatedById == userId)
+            {
+                var transactionModel = new TransactionViewModel();
+                transactionModel.Title = currentTransaction.Title;
+                transactionModel.Description = currentTransaction.Description;
+                transactionModel.Id = currentTransaction.Id;
+                transactionModel.Amount = currentTransaction.Amount;
+                transactionModel.Date = currentTransaction.Date;
+                transactionModel.CategoryId = currentTransaction.CategoryId;
+                transactionModel.Categories = currentHouseholdCategories;
+                return Ok(transactionModel);
+            }
+            else
+            {
+                return BadRequest();
             }
 
         }
 
         [HttpPost]
         [Authorize]
-        [Route("EditTransaction")]
-        public IHttpActionResult EditTransaction(EditTransactionBindingModel model)
+        [Route("EditTransaction/{id:int}/{transactionId:int}")]
+        public IHttpActionResult EditTransaction(int id, int transactionId, TransactionViewModel model)
         {
             if (!ModelState.IsValid)
             {
@@ -89,13 +184,10 @@ namespace HouseHoldBudgeter.Controllers
             }
 
             var currentTransaction = DbContext.Transactions.FirstOrDefault(
-                    trans => trans.Id == model.Id);
-
-            var currentCategory = DbContext.Categories.FirstOrDefault(
-                    cat => cat.Id == currentTransaction.CategoryId);
+                    trans => trans.Id == transactionId);
 
             var currentHousehold = DbContext.Households.FirstOrDefault(
-                    house => house.Id == currentCategory.HouseholdId);
+                    house => house.Id == id);
 
             var currentBankAccount = DbContext.BankAccounts.FirstOrDefault(
                     account => account.Id == currentTransaction.BankAccountId);
@@ -106,7 +198,7 @@ namespace HouseHoldBudgeter.Controllers
                     user => user.Id == userId && currentTransaction.CreatedById == userId);
 
 
-            if (currentHousehold == null || currentBankAccount == null || currentCategory == null || currentTransaction == null)
+            if (currentTransaction == null)
             {
                 return NotFound();
             }
@@ -119,15 +211,16 @@ namespace HouseHoldBudgeter.Controllers
                 currentTransaction.DateUpdated = DateTime.Today;
                 currentTransaction.Date = model.Date;
                 currentTransaction.Amount = model.Amount;
+                currentTransaction.CategoryId = model.CategoryId;
 
                 UpdateBankAccountBalance(currentBankAccount.Id);
                 DbContext.SaveChanges();
-                return Ok("TransAction Edited");
+                return Ok();
 
             }
             else
             {
-                return BadRequest("User not owner of household or not creator of transaction");
+                return BadRequest();
             }
 
         }
@@ -246,7 +339,8 @@ namespace HouseHoldBudgeter.Controllers
                                                    DateCreated = trans.DateCreated,
                                                    DateUpdated = trans.DateUpdated,
                                                    Amount = trans.Amount,
-                                                   VoidTransaction = trans.VoidTransaction
+                                                   VoidTransaction = trans.VoidTransaction,
+                                                   HouseholdId = currentHousehold.Id
                                                }).ToList();
 
 
@@ -255,7 +349,7 @@ namespace HouseHoldBudgeter.Controllers
             }
             else
             {
-                return BadRequest("You are not a member of this household");
+                return BadRequest();
             }
         }
 
