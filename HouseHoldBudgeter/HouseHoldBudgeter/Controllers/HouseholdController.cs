@@ -72,7 +72,7 @@ namespace HouseHoldBudgeter.Controllers
             }
             else
             {
-                return NotFound();
+                return BadRequest("Not owner");
             }
 
         }
