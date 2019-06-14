@@ -225,7 +225,7 @@ namespace HouseHoldBudgeter.Controllers
 
         }
 
-        [HttpPost]
+        [HttpGet]
         [Authorize]
         [Route("DeleteTransaction/{id:int}")]
         public IHttpActionResult DeleteTransaction(int id)
@@ -257,16 +257,16 @@ namespace HouseHoldBudgeter.Controllers
                 DbContext.Transactions.Remove(currentTransaction);
                 UpdateBankAccountBalance(currentBankAccount.Id);
                 DbContext.SaveChanges();
-                return Ok("Transaction Deleted");
+                return Ok();
             }
             else
             {
-                return BadRequest("User not owner of household or not creator of transaction");
+                return BadRequest();
             }
 
         }
 
-        [HttpPost]
+        [HttpGet]
         [Authorize]
         [Route("VoidTransaction/{id:int}")]
         public IHttpActionResult VoidTransaction(int id)
@@ -292,7 +292,7 @@ namespace HouseHoldBudgeter.Controllers
             {
                 if (currentTransaction.VoidTransaction)
                 {
-                    return BadRequest("Account already voided");
+                    return BadRequest();
                 }
 
                 currentTransaction.VoidTransaction = true;
@@ -302,7 +302,7 @@ namespace HouseHoldBudgeter.Controllers
             }
             else
             {
-                return BadRequest("User not owner of household or not creator of transaction");
+                return BadRequest();
             }
         }
 

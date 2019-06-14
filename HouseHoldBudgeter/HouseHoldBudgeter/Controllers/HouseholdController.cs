@@ -350,18 +350,90 @@ namespace HouseHoldBudgeter.Controllers
             var currentLoggedUser = DbContext.Users.FirstOrDefault(
             usr => usr.Id == userId);
 
+
             var myJoinedHouseholds = (from usr in currentLoggedUser.JoinedHouseholds
-                                
-                                       select new HouseholdViewModel
-                                       {
-                                           Id = usr.Id,
-                                           Name = usr.Name,
-                                           DateCreated = usr.DateCreated,
-                                           DateUpdated = usr.DateUpdated
-                                       }).ToList();
+
+                                      select new HouseholdViewModel
+                                      {
+                                          Id = usr.Id,
+                                          Name = usr.Name,
+                                          DateCreated = usr.DateCreated,
+                                          DateUpdated = usr.DateUpdated
+                                      }).ToList();
 
 
             return Ok(myJoinedHouseholds);
+
+        }
+
+        [HttpGet]
+        [Authorize]
+        [Route("ViewHouseholdDetails/{id}")]
+        public IHttpActionResult ViewHouseholdDetails(int id)
+        {
+
+            var currentHousehold = DbContext.Households.FirstOrDefault(
+               house => house.Id == id);
+
+            var userId = User.Identity.GetUserId();
+
+            var currentLoggedUser = DbContext.Users.FirstOrDefault(
+            usr => usr.Id == userId);
+
+            if (currentHousehold == null)
+            {
+                return NotFound();
+            }
+
+            if (currentHousehold.HouseholdJoinedMembers.Contains(currentLoggedUser))
+            {
+
+                var currentHouseholdAccounts = (from acc in currentHousehold.BankAccounts
+                                                select new BankAccountViewModel
+                                                {
+                                                    Id = acc.Id,
+                                                    Name = acc.Name,
+                                                    Balance = acc.Balance,
+                                                    DateCreated = acc.DateCreated,
+                                                    DateUpdated = acc.DateUpdated,
+                                                    HouseholdId = acc.HouseHoldId,
+                                                    Description = acc.Description
+                                                }).ToList();
+
+                var balanceList = (from acc in currentHouseholdAccounts
+                                   select acc.Balance).ToList();
+
+                var categoryList = (from cat in DbContext.Categories
+                                    where cat.HouseholdId == id
+                                    select new CategoryDetailsViewModel
+                                    {
+                                        Id = cat.Id,
+                                        Name = cat.Name,
+                                        Transactions = cat.Transactions,
+                                        DateCreated = cat.DateCreated,
+                                        DateUpdated = cat.DateUpdated,
+                                        Description = cat.Description,
+                                        HouseholdId = cat.HouseholdId,
+                                        TotalTransactionAmounts = (from trans in cat.Transactions
+                                                                   select trans.Amount).ToList().AsQueryable().Sum()
+                                    }).ToList();
+
+                var totalBalance = balanceList.AsQueryable().Sum();
+                var householdDetailModel = new HouseholdDetailViewModel();
+                householdDetailModel.Id = id;
+                householdDetailModel.Name = currentHousehold.Name;
+                householdDetailModel.DateCreated = currentHousehold.DateCreated;
+                householdDetailModel.DateUpdated = currentHousehold.DateUpdated;
+                householdDetailModel.TotalBalance = totalBalance;
+                householdDetailModel.BankAccounts = currentHouseholdAccounts;
+                householdDetailModel.HouseholdCategories = categoryList;
+
+                return Ok(householdDetailModel);
+            }
+            else
+            {
+                return BadRequest();
+            }
 
         }
 
